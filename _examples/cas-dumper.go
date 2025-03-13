@@ -5,10 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
+	"log/slog"
 	"net/http"
 	"net/url"
-
-	"github.com/golang/glog"
 
 	"gopkg.in/cas.v1"
 )
@@ -29,8 +28,7 @@ func main() {
 		flag.Usage()
 		return
 	}
-
-	glog.Info("Starting up")
+	slog.Info("Starting up")
 
 	m := http.NewServeMux()
 	m.Handle("/", MyHandler)
@@ -46,10 +44,10 @@ func main() {
 	}
 
 	if err := server.ListenAndServe(); err != nil {
-		glog.Infof("Error from HTTP Server: %v", err)
+		slog.Error("Error from HTTP Server", slog.Any(err))
 	}
 
-	glog.Info("Shutting down")
+	slog.Info("Shutting down")
 }
 
 type templateBinding struct {

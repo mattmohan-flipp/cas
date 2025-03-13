@@ -2,12 +2,11 @@ package cas
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"path"
-
-	"github.com/golang/glog"
 )
 
 // https://apereo.github.io/cas/4.2.x/protocol/REST-Protocol.html
@@ -24,6 +23,7 @@ type RestOptions struct {
 	ServiceURL *url.URL
 	Client     *http.Client
 	URLScheme  URLScheme
+	Logger     *slog.Logger
 }
 
 // RestClient uses the rest protocol provided by cas
@@ -32,13 +32,15 @@ type RestClient struct {
 	serviceURL  *url.URL
 	client      *http.Client
 	stValidator *ServiceTicketValidator
+	logger      *slog.Logger
 }
 
 // NewRestClient creates a new client for the cas rest protocol with the provided options
 func NewRestClient(options *RestOptions) *RestClient {
-	if glog.V(2) {
-		glog.Infof("cas: new rest client with options %v", options)
+	if options.Logger == nil {
+		options.Logger = slog.Default()
 	}
+	options.Logger.Info("new rest client", slog.Any("options", options))
 
 	var client *http.Client
 	if options.Client != nil {
@@ -58,7 +60,8 @@ func NewRestClient(options *RestOptions) *RestClient {
 		urlScheme:   urlScheme,
 		serviceURL:  options.ServiceURL,
 		client:      client,
-		stValidator: NewServiceTicketValidator(client, options.CasURL),
+		stValidator: NewServiceTicketValidator(ServiceTicketValidatorOptions{Client: client, CasURL: options.CasURL, Logger: options.Logger}),
+		logger:      options.Logger,
 	}
 }
 
@@ -139,7 +142,7 @@ func (c *RestClient) RequestServiceTicket(tgt TicketGrantingTicket) (ServiceTick
 
 	defer resp.Body.Close()
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}

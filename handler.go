@@ -1,10 +1,8 @@
 package cas
 
 import (
-	"fmt"
+	"log/slog"
 	"net/http"
-
-	"github.com/golang/glog"
 )
 
 const (
@@ -20,9 +18,7 @@ type clientHandler struct {
 // ServeHTTP handles HTTP requests, processes CAS requests
 // and passes requests up to its child http.Handler.
 func (ch *clientHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if glog.V(2) {
-		glog.Infof("cas: handling %v request for %v", r.Method, r.URL)
-	}
+	ch.c.logger.Info("handling request", slog.String("method", r.Method), slog.String("path", r.URL.String()))
 
 	setClient(r, ch.c)
 
@@ -62,11 +58,14 @@ func (ch *clientHandler) performSingleLogout(w http.ResponseWriter, r *http.Requ
 	logoutRequest, err := parseLogoutRequest([]byte(rawXML))
 
 	if err != nil {
+		ch.c.logger.Error("error parsing logout request", slog.String("err", err.Error()))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if err := ch.c.tickets.Delete(logoutRequest.SessionIndex); err != nil {
+		ch.c.logger.Error("error removing ticket", slog.String("err", err.Error()))
+
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -74,5 +73,4 @@ func (ch *clientHandler) performSingleLogout(w http.ResponseWriter, r *http.Requ
 	ch.c.deleteSession(logoutRequest.SessionIndex)
 
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, "OK")
 }
