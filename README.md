@@ -3,18 +3,18 @@
 CAS provides a http package compatible client implementation for use with
 securing http frontends in golang.
 
-```
-import "gopkg.in/cas.v2"
+``` go
+import "github.com/mattmohan-flipp/go-cas/v2"
 ```
 
 If you are using go modules, get the library by running:
 
-```
-go get gopkg.in/cas.v2@v2.2.1
+``` go
+go get github.com/mattmohan-flipp/go-cas/v2
 ```
 
 ## Examples and Documentation
 
-Documentation is available at: https://pkg.go.dev/gopkg.in/cas.v2
+Documentation is available at: https://pkg.go.dev/github.com/mattmohan-flipp/go-cas/v2
 Examples are included in the documentation but are also available in the
 `_examples` directory.

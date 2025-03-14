@@ -2,8 +2,14 @@ package cas
 
 import (
 	"context"
+	"encoding/xml"
+	"errors"
+	"io"
 	"net/http"
+	"net/url"
 	"time"
+
+	"github.com/mattmohan-flipp/go-cas/v2/proxy"
 )
 
 type key int
@@ -149,4 +155,51 @@ func MemberOf(r *http.Request) []string {
 	}
 
 	return nil
+}
+
+var errNoClient = errors.New("cas: no client associated with request")
+var errNoAuthenticationResponse = errors.New("cas: no authentication response associated with request")
+var errProxyUrlError = errors.New("cas: error getting proxy url")
+var errProxyTicketError = errors.New("cas: error getting proxy ticket")
+
+func GetProxyTicket(r *http.Request, targetService *url.URL) (string, error) {
+	// Get the client from the request context.
+	c := getClient(r)
+	if c == nil {
+		return "", errNoClient
+	}
+
+	// Pull the authentication response from the request context.
+	a := getAuthenticationResponse(r)
+	if a == nil {
+		return "", errNoAuthenticationResponse
+	}
+	if a.ProxyGrantingTicket == "" {
+		return "", errors.New("cas: no proxy granting ticket available in authentication response")
+	}
+
+	url, err := c.proxy.GetProxyURL(targetService.String(), a.ProxyGrantingTicket)
+	if err != nil {
+		return "", err
+	}
+
+	proxyReq, err := c.client.Get(url)
+	if err != nil {
+		return "", err
+	}
+
+	response, err := io.ReadAll(proxyReq.Body)
+	defer proxyReq.Body.Close()
+	if err != nil {
+		return "", err
+	}
+
+	var proxyResponse proxy.XmlProxyResponse
+	xml.Unmarshal(response, &proxyResponse)
+
+	if proxyResponse.Success.ProxyTicket == "" {
+		return "", errProxyTicketError
+	}
+
+	return proxyResponse.Success.ProxyTicket, nil
 }

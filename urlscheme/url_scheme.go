@@ -1,4 +1,4 @@
-package cas
+package urlscheme
 
 import (
 	"net/url"
@@ -14,6 +14,8 @@ type URLScheme interface {
 	RestGrantingTicket() (*url.URL, error)
 	RestServiceTicket(tgt string) (*url.URL, error)
 	RestLogout(tgt string) (*url.URL, error)
+	Proxy() (*url.URL, error)
+	ProxyValidate() (*url.URL, error)
 }
 
 // NewDefaultURLScheme creates a URLScheme which uses the cas default urls
@@ -25,6 +27,8 @@ func NewDefaultURLScheme(base *url.URL) *DefaultURLScheme {
 		ValidatePath:        "validate",
 		ServiceValidatePath: "serviceValidate",
 		RestEndpoint:        path.Join("v1", "tickets"),
+		ProxyValidatePath:   "proxyValidate",
+		ProxyPath:           "proxy",
 	}
 }
 
@@ -37,7 +41,12 @@ type DefaultURLScheme struct {
 	ValidatePath        string
 	ServiceValidatePath string
 	RestEndpoint        string
+	ProxyPath           string
+	ProxyValidatePath   string
 }
+
+// Check that DefaultURLScheme implements URLScheme
+var _ URLScheme = &DefaultURLScheme{}
 
 // Login returns the url for the cas login page
 func (scheme *DefaultURLScheme) Login() (*url.URL, error) {
@@ -67,6 +76,16 @@ func (scheme *DefaultURLScheme) RestGrantingTicket() (*url.URL, error) {
 // RestServiceTicket returns the url for requesting an service ticket via rest api
 func (scheme *DefaultURLScheme) RestServiceTicket(tgt string) (*url.URL, error) {
 	return scheme.createURL(path.Join(scheme.RestEndpoint, tgt))
+}
+
+// Proxy returns the url for creating a proxy ticket
+func (scheme *DefaultURLScheme) Proxy() (*url.URL, error) {
+	return scheme.createURL(scheme.ProxyPath)
+}
+
+// ProxyValidate returns the url for validating a proxy ticket
+func (scheme *DefaultURLScheme) ProxyValidate() (*url.URL, error) {
+	return scheme.createURL(scheme.ProxyValidatePath)
 }
 
 // RestLogout returns the url for destroying an granting ticket via rest api

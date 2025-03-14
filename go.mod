@@ -1,4 +1,4 @@
-module gopkg.in/cas.v2
+module github.com/mattmohan-flipp/go-cas/v2
 
 go 1.23.0
 

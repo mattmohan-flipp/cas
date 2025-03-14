@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+
+	"github.com/mattmohan-flipp/go-cas/v2/proxy"
 )
 
 type ServiceTicketValidatorOptions struct {
@@ -34,10 +36,10 @@ type ServiceTicketValidator struct {
 // ValidateTicket validates the service ticket for the given server. The method will try to use the service validate
 // endpoint of the cas >= 2 protocol, if the service validate endpoint not available, the function will use the cas 1
 // validate endpoint.
-func (validator *ServiceTicketValidator) ValidateTicket(serviceURL *url.URL, ticket string) (*AuthenticationResponse, error) {
+func (validator *ServiceTicketValidator) ValidateTicket(serviceURL *url.URL, ticket string, proxy *proxy.Proxy) (*AuthenticationResponse, error) {
 	validator.logger.Info("Validating ticket", slog.String("ticket", ticket), slog.String("serviceURL", serviceURL.String()))
 
-	u, err := validator.ServiceValidateUrl(serviceURL, ticket)
+	u, err := validator.ServiceValidateUrl(serviceURL, ticket, proxy)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +49,7 @@ func (validator *ServiceTicketValidator) ValidateTicket(serviceURL *url.URL, tic
 		return nil, err
 	}
 
-	r.Header.Add("User-Agent", "Golang CAS client gopkg.in/cas")
+	r.Header.Add("User-Agent", "Golang CAS client github.com/mattmohan-flipp/go-cas/v2")
 
 	validator.logger.Info("Attempting ticket validation", slog.String("url", r.URL.String()))
 
@@ -87,7 +89,7 @@ func (validator *ServiceTicketValidator) ValidateTicket(serviceURL *url.URL, tic
 
 // ServiceValidateUrl creates the service validation url for the cas >= 2 protocol.
 // TODO the function is only exposed, because of the clients ServiceValidateUrl function
-func (validator *ServiceTicketValidator) ServiceValidateUrl(serviceURL *url.URL, ticket string) (string, error) {
+func (validator *ServiceTicketValidator) ServiceValidateUrl(serviceURL *url.URL, ticket string, proxy *proxy.Proxy) (string, error) {
 	u, err := validator.casURL.Parse(path.Join(validator.casURL.Path, "serviceValidate"))
 	if err != nil {
 		return "", err
@@ -96,6 +98,9 @@ func (validator *ServiceTicketValidator) ServiceValidateUrl(serviceURL *url.URL,
 	q := u.Query()
 	q.Add("service", sanitisedURLString(serviceURL))
 	q.Add("ticket", ticket)
+	if proxy.IsEnabled() {
+		q.Add("pgtUrl", sanitisedURLString(proxy.GetProxyCallbackURL()))
+	}
 	u.RawQuery = q.Encode()
 
 	return u.String(), nil
@@ -112,7 +117,7 @@ func (validator *ServiceTicketValidator) validateTicketCas1(serviceURL *url.URL,
 		return nil, err
 	}
 
-	r.Header.Add("User-Agent", "Golang CAS client gopkg.in/cas")
+	r.Header.Add("User-Agent", "Golang CAS client github.com/mattmohan-flipp/go-cas/v2")
 	validator.logger.Debug("Attempting ticket validation", slog.String("url", r.URL.String()))
 
 	resp, err := validator.client.Do(r)

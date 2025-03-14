@@ -6,25 +6,29 @@ import (
 	"net/url"
 
 	"log/slog"
+
+	"github.com/mattmohan-flipp/go-cas/v2/proxy"
+	"github.com/mattmohan-flipp/go-cas/v2/urlscheme"
 )
 
 // Options : Client configuration options
 type Options struct {
-	URL          *url.URL     // URL to the CAS service
-	Store        TicketStore  // Custom TicketStore, if nil a MemoryStore will be used
-	Client       *http.Client // Custom http client to allow options for http connections
-	SendService  bool         // Custom sendService to determine whether you need to send service param
-	URLScheme    URLScheme    // Custom url scheme, can be used to modify the request urls for the client
-	Cookie       *http.Cookie // http.Cookie options, uses Path, Domain, MaxAge, HttpOnly, & Secure
+	URL          *url.URL            // URL to the CAS service
+	Store        TicketStore         // Custom TicketStore, if nil a MemoryStore will be used
+	Client       *http.Client        // Custom http client to allow options for http connections
+	SendService  bool                // Custom sendService to determine whether you need to send service param
+	URLScheme    urlscheme.URLScheme // Custom url scheme, can be used to modify the request urls for the client
+	Cookie       *http.Cookie        // http.Cookie options, uses Path, Domain, MaxAge, HttpOnly, & Secure
 	SessionStore SessionStore
 	Logger       *slog.Logger // Optional logger
+	Proxy        *proxy.Proxy
 }
 
 // Client implements the main protocol
 type Client struct {
 	tickets   TicketStore
 	client    *http.Client
-	urlScheme URLScheme
+	urlScheme urlscheme.URLScheme
 	cookie    *http.Cookie
 
 	sessions    SessionStore
@@ -32,6 +36,8 @@ type Client struct {
 
 	stValidator *ServiceTicketValidator
 	logger      *slog.Logger
+
+	proxy *proxy.Proxy
 }
 
 // NewClient creates a Client with the provided Options.
@@ -55,11 +61,11 @@ func NewClient(options *Options) *Client {
 		sessions = NewMemorySessionStore()
 	}
 
-	var urlScheme URLScheme
+	var urlScheme urlscheme.URLScheme
 	if options.URLScheme != nil {
 		urlScheme = options.URLScheme
 	} else {
-		urlScheme = NewDefaultURLScheme(options.URL)
+		urlScheme = urlscheme.NewDefaultURLScheme(options.URL)
 	}
 
 	var client *http.Client
@@ -81,6 +87,11 @@ func NewClient(options *Options) *Client {
 		}
 	}
 
+	proxySettings := options.Proxy
+	if proxySettings == nil {
+		proxySettings = proxy.NewProxy(urlScheme, &proxy.ProxyOptions{})
+	}
+
 	return &Client{
 		tickets:     tickets,
 		client:      client,
@@ -90,6 +101,7 @@ func NewClient(options *Options) *Client {
 		sendService: options.SendService,
 		stValidator: NewServiceTicketValidator(ServiceTicketValidatorOptions{Client: client, CasURL: options.URL, Logger: options.Logger}),
 		logger:      options.Logger,
+		proxy:       proxySettings,
 	}
 }
 
@@ -174,7 +186,7 @@ func (c *Client) ServiceValidateUrlForRequest(ticket string, r *http.Request) (s
 	if err != nil {
 		return "", err
 	}
-	return c.stValidator.ServiceValidateUrl(service, ticket)
+	return c.stValidator.ServiceValidateUrl(service, ticket, c.proxy)
 }
 
 // ValidateUrlForRequest determines the CAS validate URL for the ticket and http.Request.
@@ -215,6 +227,10 @@ func (c *Client) RedirectToLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, u, http.StatusFound)
 }
 
+func (c *Client) HandleProxyCallback(w http.ResponseWriter, r *http.Request) {
+	c.proxy.Handle(w, r)
+}
+
 // validateTicket performs CAS ticket validation with the given ticket and service.
 func (c *Client) validateTicket(ticket string, service *http.Request) error {
 	serviceURL, err := requestURL(service)
@@ -222,7 +238,7 @@ func (c *Client) validateTicket(ticket string, service *http.Request) error {
 		return err
 	}
 
-	success, err := c.stValidator.ValidateTicket(serviceURL, ticket)
+	success, err := c.stValidator.ValidateTicket(serviceURL, ticket, c.proxy)
 	if err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-package cas
+package urlscheme
 
 import (
 	"net/url"
@@ -23,6 +23,10 @@ func TestDefaultURLScheme(t *testing.T) {
 	assertURL(t, "/cas/v1/tickets/TGT-123", u, err)
 	u, err = scheme.RestLogout("TGT-123")
 	assertURL(t, "/cas/v1/tickets/TGT-123", u, err)
+	u, err = scheme.Proxy()
+	assertURL(t, "/cas/proxy", u, err)
+	u, err = scheme.ProxyValidate()
+	assertURL(t, "/cas/proxyValidate", u, err)
 }
 
 func assertURL(t *testing.T, expected string, u *url.URL, err error) {

@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"gopkg.in/cas.v1"
+	"github.com/mattmohan-flipp/go-cas/v2"
 )
 
 type myHandler struct{}

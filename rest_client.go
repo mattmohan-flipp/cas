@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+
+	"github.com/mattmohan-flipp/go-cas/v2/proxy"
+	"github.com/mattmohan-flipp/go-cas/v2/urlscheme"
 )
 
 // https://apereo.github.io/cas/4.2.x/protocol/REST-Protocol.html
@@ -22,17 +25,19 @@ type RestOptions struct {
 	CasURL     *url.URL
 	ServiceURL *url.URL
 	Client     *http.Client
-	URLScheme  URLScheme
+	URLScheme  urlscheme.URLScheme
 	Logger     *slog.Logger
+	Proxy      *proxy.Proxy
 }
 
 // RestClient uses the rest protocol provided by cas
 type RestClient struct {
-	urlScheme   URLScheme
+	urlScheme   urlscheme.URLScheme
 	serviceURL  *url.URL
 	client      *http.Client
 	stValidator *ServiceTicketValidator
 	logger      *slog.Logger
+	proxy       *proxy.Proxy
 }
 
 // NewRestClient creates a new client for the cas rest protocol with the provided options
@@ -49,19 +54,25 @@ func NewRestClient(options *RestOptions) *RestClient {
 		client = &http.Client{}
 	}
 
-	var urlScheme URLScheme
+	var urlSchemeInstance urlscheme.URLScheme
 	if options.URLScheme != nil {
-		urlScheme = options.URLScheme
+		urlSchemeInstance = options.URLScheme
 	} else {
-		urlScheme = NewDefaultURLScheme(options.CasURL)
+		urlSchemeInstance = urlscheme.NewDefaultURLScheme(options.CasURL)
+	}
+
+	proxyInstance := options.Proxy
+	if proxyInstance == nil {
+		proxyInstance = proxy.NewProxy(urlSchemeInstance, &proxy.ProxyOptions{RequestProxy: false, Logger: options.Logger})
 	}
 
 	return &RestClient{
-		urlScheme:   urlScheme,
+		urlScheme:   urlSchemeInstance,
 		serviceURL:  options.ServiceURL,
 		client:      client,
 		stValidator: NewServiceTicketValidator(ServiceTicketValidatorOptions{Client: client, CasURL: options.CasURL, Logger: options.Logger}),
 		logger:      options.Logger,
+		proxy:       proxyInstance,
 	}
 }
 
@@ -152,7 +163,7 @@ func (c *RestClient) RequestServiceTicket(tgt TicketGrantingTicket) (ServiceTick
 
 // ValidateServiceTicket validates the service ticket and returns an AuthenticationResponse
 func (c *RestClient) ValidateServiceTicket(st ServiceTicket) (*AuthenticationResponse, error) {
-	return c.stValidator.ValidateTicket(c.serviceURL, string(st))
+	return c.stValidator.ValidateTicket(c.serviceURL, string(st), c.proxy)
 }
 
 // Logout destroys the given granting ticket
