@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/mattmohan-flipp/go-cas/v2/proxy/store"
-	"github.com/mattmohan-flipp/go-cas/v2/urlscheme"
+	"github.com/mattmohan-flipp/cas/v2/proxy/store"
+	"github.com/mattmohan-flipp/cas/v2/urlscheme"
 	"github.com/stretchr/testify/assert"
 )
 

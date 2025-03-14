@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/mattmohan-flipp/go-cas/v2/proxy"
-	"github.com/mattmohan-flipp/go-cas/v2/urlscheme"
+	"github.com/mattmohan-flipp/cas/v2/proxy"
+	"github.com/mattmohan-flipp/cas/v2/urlscheme"
 )
 
 // https://apereo.github.io/cas/4.2.x/protocol/REST-Protocol.html

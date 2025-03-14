@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/mattmohan-flipp/go-cas/v2/proxy"
+	"github.com/mattmohan-flipp/cas/v2/proxy"
 )
 
 type key int

@@ -7,8 +7,8 @@ import (
 
 	"log/slog"
 
-	"github.com/mattmohan-flipp/go-cas/v2/proxy"
-	"github.com/mattmohan-flipp/go-cas/v2/urlscheme"
+	"github.com/mattmohan-flipp/cas/v2/proxy"
+	"github.com/mattmohan-flipp/cas/v2/urlscheme"
 )
 
 // Options : Client configuration options

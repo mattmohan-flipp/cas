@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/mattmohan-flipp/go-cas/v2/proxy/store"
-	"github.com/mattmohan-flipp/go-cas/v2/urlscheme"
+	"github.com/mattmohan-flipp/cas/v2/proxy/store"
+	"github.com/mattmohan-flipp/cas/v2/urlscheme"
 )
 
 type Proxy struct {

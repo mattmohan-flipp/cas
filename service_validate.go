@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/mattmohan-flipp/go-cas/v2/proxy"
+	"github.com/mattmohan-flipp/cas/v2/proxy"
 )
 
 type ServiceTicketValidatorOptions struct {
@@ -49,7 +49,7 @@ func (validator *ServiceTicketValidator) ValidateTicket(serviceURL *url.URL, tic
 		return nil, err
 	}
 
-	r.Header.Add("User-Agent", "Golang CAS client github.com/mattmohan-flipp/go-cas/v2")
+	r.Header.Add("User-Agent", "Golang CAS client github.com/mattmohan-flipp/cas/v2")
 
 	validator.logger.Info("Attempting ticket validation", slog.String("url", r.URL.String()))
 
@@ -117,7 +117,7 @@ func (validator *ServiceTicketValidator) validateTicketCas1(serviceURL *url.URL,
 		return nil, err
 	}
 
-	r.Header.Add("User-Agent", "Golang CAS client github.com/mattmohan-flipp/go-cas/v2")
+	r.Header.Add("User-Agent", "Golang CAS client github.com/mattmohan-flipp/cas/v2")
 	validator.logger.Debug("Attempting ticket validation", slog.String("url", r.URL.String()))
 
 	resp, err := validator.client.Do(r)
